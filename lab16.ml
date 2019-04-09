@@ -42,21 +42,30 @@ buses get 20. mpg, cars get 30. mpg, and trucks get 15. mpg. (Notice
 that these values are floats.)
 ....................................................................*)
    
-let get_efficiency _ = failwith "get_efficiency not implemented" ;; 
-     
+let get_efficiency (v : vehicle) : float = 
+
+  match v with 
+  | Bus (_, _) -> 20.0
+  | Car (_, _) -> 30.0
+  | Truck (_, _) -> 15.0 ;; 
+    
 (*....................................................................
 Exercise 2: Write a function get_energy that returns the amount of
 energy a vehicle has available.
 ....................................................................*)
    
-let get_energy _ = failwith "get_energy not implemented" ;;
+let get_energy (v : vehicle) : float =
+  match v with 
+  | Bus (_, y) | Car (_, y) | Truck (_, y) -> y ;;
 
 (*....................................................................
 Exercise 3: Write a function get_pos that returns the x-y position of
 a vehicle as a point.
 ....................................................................*)
    
-let get_pos _ = failwith "get_pos not implemented" ;;
+let get_pos (v : vehicle) : point = 
+  match v with 
+  | Bus (x, _)| Car (x, _) | Truck (x, _) -> x ;;
      
 (*....................................................................
 Exercise 4: Let's define a function that allows these vehicles to
@@ -74,7 +83,18 @@ return a new vehicle with the updated position and energy. (Calls with
 negative distance should raise an Invalid_argument exception.)
 ....................................................................*)
 
-let go _ = failwith "not implemented" ;;
+let go (v : vehicle) (distance : float) (direct : float) : vehicle = 
+  if distance < 0. then raise (Invalid_argument "negative distance")
+  else if (((get_efficiency v) *. (get_energy v)) -. distance ) > 0. then
+    match v with 
+    | Bus (x, y) -> Bus (offset x distance direct, y -. (distance /. 20.))
+    | Car (x, y) -> Car (offset x distance direct, y -. (distance /. 30.))
+    | Truck (x, y) -> Truck (offset x distance direct, y -. (distance /. 15.))
+  else 
+  match v  with
+   | Bus (x, y) -> Bus (offset x ((get_efficiency v) *. y) direct, 0.)
+   | Car (x, y) -> Car (offset x ((get_efficiency v) *. y) direct, 0.) 
+   | Truck (x, y) -> Truck (offset x ((get_efficiency v) *. y) direct, 0.);;
 
 (*====================================================================
 Part 2: Object-oriented vehicles
@@ -140,14 +160,12 @@ class vehicle_class (capacity: float)
     traveled, position, and remaining energy, respectively.
     ................................................................*)
 
-    method get_distance : float = 
-      failwith "get_distance method not implemented"
+    method get_distance : float = odometer      
 
-    method get_pos : point = 
-      failwith "get_pos method not implemented"
-         
-    method get_energy : float = 
-      failwith "get_energy method not implemented"
+    method get_pos : point = pos 
+        
+    method get_energy : float = energy  
+      
 
     (*................................................................
     Exercise 6: Now add a method to your vehicle class called "go"
@@ -160,8 +178,8 @@ class vehicle_class (capacity: float)
     it before.
     ................................................................*)
 
-    method go _ = 
-      failwith "go method not implemented"
+    method go (goal : float ) (direction : float) = 
+      if energy  > 0 then 
 
     (*................................................................
     Exercise 7: Since we'll eventually run out of energy, it would be
