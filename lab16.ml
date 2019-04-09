@@ -188,8 +188,12 @@ yourself below.
 
 ......................................................................
 Exercise 8: Define a car class, taking advantage of inheritance. Cars
-should have the same energy capacity and efficiency as described above
-in Part 1.
+should have the same energy efficiency as described above in Part 1.
+
+Capacities:
+Car - 100.
+Truck - 150.
+Bus - 200.
 ....................................................................*)
 
 class car (initial_energy : float) (initial_pos : point) = 
