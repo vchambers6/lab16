@@ -4,12 +4,8 @@
 *)
 
 (*
-Objective: 
-
-  Compare the effectiveness of function-oriented and object-oriented
-  programming in various situations. Gain practice implementing
-  objects in OCaml.
- *)
+                               SOLUTION
+*)
 
 (* In this lab, you'll use a Point module for x-y points, provided in
 the files point.ml and point.mli. You may want to look over point.mli
@@ -43,29 +39,32 @@ that these values are floats.)
 ....................................................................*)
    
 let get_efficiency (v : vehicle) : float = 
-
   match v with 
-  | Bus (_, _) -> 20.0
-  | Car (_, _) -> 30.0
-  | Truck (_, _) -> 15.0 ;; 
-    
+  | Bus _-> 20.
+  | Car _ -> 30. 
+  | Truck _ -> 15. ;; 
+     
 (*....................................................................
 Exercise 2: Write a function get_energy that returns the amount of
 energy a vehicle has available.
 ....................................................................*)
    
-let get_energy (v : vehicle) : float =
-  match v with 
-  | Bus (_, y) | Car (_, y) | Truck (_, y) -> y ;;
+let get_energy (veh : vehicle) : float =
+  match veh with 
+  | Bus (_, energy) 
+  | Car (_, energy) 
+  | Truck (_, energy) -> energy ;; 
 
 (*....................................................................
 Exercise 3: Write a function get_pos that returns the x-y position of
 a vehicle as a point.
 ....................................................................*)
    
-let get_pos (v : vehicle) : point = 
-  match v with 
-  | Bus (x, _)| Car (x, _) | Truck (x, _) -> x ;;
+let get_pos (veh : vehicle) : point = 
+  match veh with
+  | Bus (p, _)
+  | Car (p, _)
+  | Truck (p, _) -> p ;;
      
 (*....................................................................
 Exercise 4: Let's define a function that allows these vehicles to
@@ -83,18 +82,20 @@ return a new vehicle with the updated position and energy. (Calls with
 negative distance should raise an Invalid_argument exception.)
 ....................................................................*)
 
-let go (v : vehicle) (distance : float) (direct : float) : vehicle = 
-  if distance < 0. then raise (Invalid_argument "negative distance")
-  else if (((get_efficiency v) *. (get_energy v)) -. distance ) > 0. then
-    match v with 
-    | Bus (x, y) -> Bus (offset x distance direct, y -. (distance /. 20.))
-    | Car (x, y) -> Car (offset x distance direct, y -. (distance /. 30.))
-    | Truck (x, y) -> Truck (offset x distance direct, y -. (distance /. 15.))
-  else 
-  match v  with
-   | Bus (x, y) -> Bus (offset x ((get_efficiency v) *. y) direct, 0.)
-   | Car (x, y) -> Car (offset x ((get_efficiency v) *. y) direct, 0.) 
-   | Truck (x, y) -> Truck (offset x ((get_efficiency v) *. y) direct, 0.);;
+let go (veh : vehicle) (distance : float) (angle : float) : vehicle =
+  if distance < 0. then
+    raise (Invalid_argument "go: can't move in reverse")
+  else
+    let energy = get_energy veh in 
+    let efficiency = get_efficiency veh in
+    let p = get_pos veh in
+    let distance = min distance (energy *. efficiency) in
+    let new_p = offset p distance angle in
+    let new_energy = energy -. distance /. efficiency in
+    match veh with 
+    | Bus _ -> Bus (new_p, new_energy) 
+    | Car _ -> Car (new_p, new_energy)
+    | Truck _ -> Truck (new_p, new_energy) ;;
 
 (*====================================================================
 Part 2: Object-oriented vehicles
@@ -160,13 +161,18 @@ class vehicle_class (capacity: float)
     traveled, position, and remaining energy, respectively.
     ................................................................*)
 
-    method get_distance : float = odometer      
+    method get_distance : float = 
+      odometer
 
-    method get_pos : point = pos 
-        
-    method get_energy : float = energy  
-      
+    
+    method get_pos : point = 
+      pos
+         
+    
+    method get_energy : float = 
+      energy
 
+    
     (*................................................................
     Exercise 6: Now add a method to your vehicle class called "go"
     which takes in a float for the distance the vehicle wants to
@@ -178,9 +184,17 @@ class vehicle_class (capacity: float)
     it before.
     ................................................................*)
 
-    method go (goal : float ) (direction : float) = 
-      if energy  > 0 then 
+    
+    method go (distance : float) (angle : float) : unit = 
+      if distance < 0. then
+        raise (Invalid_argument "go: can't move in reverse")
+      else
+        let distance = min distance (energy *. efficiency) in
+        pos <- offset pos distance angle;
+        energy <- energy -. distance /. efficiency;
+        odometer <- odometer +. distance
 
+    
     (*................................................................
     Exercise 7: Since we'll eventually run out of energy, it would be
     useful for a vehicle to recharge or fill the tank. Define a fill
@@ -188,8 +202,10 @@ class vehicle_class (capacity: float)
     capacity is.
     ................................................................*)
    
+    
     method fill : unit = 
-      failwith "fill method not implemented"
+      energy <- capacity
+  
   end ;; 
 
 (*====================================================================
@@ -206,17 +222,13 @@ yourself below.
 
 ......................................................................
 Exercise 8: Define a car class, taking advantage of inheritance. Cars
-should have the same energy efficiency as described above in Part 1.
-
-Capacities:
-Car - 100.
-Truck - 150.
-Bus - 200.
+should have the same energy capacity and efficiency as described above
+in Part 1.
 ....................................................................*)
 
 class car (initial_energy : float) (initial_pos : point) = 
   object
-    (* implement the car class here *)
+    inherit vehicle_class 100. 30. initial_energy initial_pos
   end ;;
 
 (*....................................................................
@@ -226,7 +238,7 @@ with the truck's specifications given in Part 1.
 
 class truck (initial_energy : float) (initial_pos : point) = 
   object
-    (* implement the truck class here *)
+    inherit vehicle_class 150. 15. initial_energy initial_pos 
   end ;; 
 
 (*....................................................................
@@ -262,5 +274,16 @@ class bus (initial_energy : float) (initial_pos : point) (seats : int) =
 
     method get_seats : int = seats
 
-    (* complete the implementation of the bus class here *)
+    inherit vehicle_class 200. 20. initial_energy initial_pos as super
+    
+    method pick_up (n : int) : unit =
+      passengers <- min seats (passengers + n)
+   
+    method drop_off (n : int) : unit =
+      passengers <- max 0 (passengers - n)
+    
+    method! fill = 
+      this#drop_off passengers;
+      super#fill
+  
   end ;;
